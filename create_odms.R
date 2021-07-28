@@ -26,8 +26,8 @@ if (!file.exists(gene_odm_to_save_fp)) {
                                                      return_metadata_ondisc_matrix = FALSE)
   # Add p_mito and batch from cell_covariates data frame
   gasp_cell_covariates <- readRDS(paste0(intermediate_data_dir, "cell_covariates.rds"))
-  gene_expression_metadata_odm@cell_covariates$p_mito <- gasp_cell_covariates$percent.mito
-  gene_expression_metadata_odm@cell_covariates$batch <- factor(gasp_cell_covariates$prep_batch)
+  gene_expression_metadata_odm$cell_covariates$p_mito <- gasp_cell_covariates$percent.mito
+  gene_expression_metadata_odm$cell_covariates$batch <- factor(gasp_cell_covariates$prep_batch)
   saveRDS(object = gene_expression_metadata_odm,
           file = paste0(processed_data_dir, "/gene_expression_metadata_odm.rds"))
 }
