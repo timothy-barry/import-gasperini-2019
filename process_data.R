@@ -25,11 +25,11 @@ saveRDS(cell_covariates, paste0(intermediate_data_dir, "cell_covariates.rds"))
 # load the gRNA "groups" at scale and gRNA count matrix
 cell_barcodes_in_use_long <- readr::read_tsv(file = paste0(raw_data_dir, "GSE120861_at_scale_screen.cells.txt"),
                                         col_names = FALSE, col_types = "c") %>% dplyr::pull()
+# all cell barcodes have 32 characters; strip the last 9
 cell_barcodes_in_use <- gsub('.{9}$', '', cell_barcodes_in_use_long)
 gRNA_barcodes_in_use <- readr::read_tsv(file = paste0(raw_data_dir, "GSE120861_grna_groups.at_scale.txt"),
                                         col_names = c("group_name", "gRNA_barcode"), col_types = "cc")
 
-# all cell barcodes have 32 characters; strip the last 9
 gRNA_counts <- readr::read_tsv(paste0(raw_data_dir, "all_libraries.gRNAcaptured.aggregated.txt"),
                                col_names = TRUE,
                                col_types = "cccc") %>% dplyr::rename(cell_barcode = cell, gRNA_barcode = barcode)
@@ -51,3 +51,4 @@ colnames(m) <- cell_barcodes_in_use_long
 
 # save the count matrix to the intermediate file directory
 saveRDS(object = m, file = paste0(intermediate_data_dir, "gRNA_count_matrix.rds"))
+

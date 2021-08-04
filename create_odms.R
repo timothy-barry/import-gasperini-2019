@@ -45,3 +45,6 @@ if (!file.exists(gRNA_odm_h5)) {
                                                       file_name = "gRNA_odm.h5",
                                                       return_metadata_ondisc_matrix = FALSE)
 }
+
+
+# the joint covariate matrix is to be computed later. Include group name and group type as columns in the feature df.
