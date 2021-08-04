@@ -37,12 +37,15 @@ writeMM(obj = sparse_gRNA_indics, file = paste0(raw_data_dir, "/perturbations.mt
 features_fp <- paste0(raw_data_dir, "/gRNAs.tsv")
 cell_fp <- paste0(raw_data_dir, "/GSE120861_pilot_highmoi_screen.cells.txt")
 mtx_fp <- paste0(raw_data_dir, "/perturbations.mtx")
-perturbations <- create_ondisc_matrix_from_mtx(mtx_fp = mtx_fp,
-                                               barcodes_fp = cell_fp,
-                                               features_fp = features_fp,
+
+cell_barcodes <- read_tsv(paste0(raw_data_dir, "/GSE120861_pilot_highmoi_screen.cells.txt"),col_names = FALSE)
+
+library(dplyr)
+perturbations <- create_ondisc_matrix_from_R_matrix(r_matrix = gRNA_indics,
+                                               barcodes = as.character(dplyr::pull(cell_barcodes)),
+                                               features_df = as.data.frame(as.character(dplyr::pull(gRNA_features)),stringsAsFactors=FALSE),
                                                on_disk_dir = processed_data_dir,
-                                               return_metadata_ondisc_matrix = TRUE,
-                                               progress = FALSE)
+                                               return_metadata_ondisc_matrix = TRUE)
 saveRDS(object = perturbations, file = paste0(raw_data_dir, "/perturbations.rds"))
 
 saveRDS(cell_covariates, paste0(intermediate_data_dir, "cell_covariates.rds"))

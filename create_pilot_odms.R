@@ -15,18 +15,15 @@ library(ondisc)
 # gene count matrix
 gene_odm_to_save_fp <- paste0(processed_data_dir, "gene_expression_odm.rds")
 if (!file.exists(gene_odm_to_save_fp)) {
-  mtx_fp <- paste0(raw_data_dir, "GSE120861_pilot_highmoi_screen.exprs.mtx")
-  barcodes_fp <- paste0(raw_data_dir, "GSE120861_pilot_highmoi_screen.cells.txt")
-  gene_ids_fp <- paste0(raw_data_dir, "GSE120861_pilot_highmoi_screen.genes.txt")
-
-  gene_expression_metadata_odm <- create_ondisc_matrix_from_mtx(mtx_fp = mtx_fp,
-                                                     barcodes_fp = barcodes_fp,
-                                                     features_fp = gene_ids_fp,
+  gRNA_matrix <- readMM(paste0(raw_data_dir, "GSE120861_pilot_highmoi_screen.exprs.mtx"))
+  barcodes <- read_tsv(paste0(raw_data_dir, "GSE120861_pilot_highmoi_screen.cells.txt"),col_names = FALSE)
+  gene_ids <- read_tsv(paste0(raw_data_dir, "GSE120861_pilot_highmoi_screen.genes.txt"),col_names = FALSE)
+  gene_expression_metadata_odm <- create_ondisc_matrix_from_R_matrix(r_matrix = gRNA_matrix,
+                                                     barcodes = as.character(dplyr::pull(barcodes)),
+                                                     features_df = as.data.frame(as.character(dplyr::pull(gene_ids)),stringsAsFactors=FALSE),
                                                      file_name = "odm_gene_expression",
-                                                     progress = TRUE,
                                                      on_disk_dir = processed_data_dir,
                                                      return_metadata_ondisc_matrix = FALSE)
-  gasp_cell_covariates <- readRDS(paste0(intermediate_data_dir, "cell_covariates.rds"))
   saveRDS(object = gene_expression_metadata_odm,
           file = paste0(processed_data_dir, "/gene_expression_metadata_odm.rds"))
 }
