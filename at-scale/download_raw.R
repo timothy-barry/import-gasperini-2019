@@ -1,5 +1,5 @@
 # source config file to get gasperini offsite location
-gasp_offsite <- .get_config_path("LOCAL_GASPERINI_2019_DATA_DIR")
+gasp_offsite <- paste0(.get_config_path("LOCAL_GASPERINI_2019_DATA_DIR"), "at-scale/")
 
 # load R.utils; increase timeout to 5 hours
 library(R.utils)

@@ -1,5 +1,5 @@
 # source config file to get gasperini offsite location
-gasp_offsite <- .get_config_path("LOCAL_GASPERINI_2019_DATA_DIR")
+gasp_offsite <- paste0(.get_config_path("LOCAL_GASPERINI_2019_DATA_DIR"), "at-scale/")
 
 # create the intermediate data directory; set raw directory
 intermediate_data_dir <- paste0(gasp_offsite, "intermediate/")
@@ -51,4 +51,3 @@ colnames(m) <- cell_barcodes_in_use_long
 
 # save the count matrix to the intermediate file directory
 saveRDS(object = m, file = paste0(intermediate_data_dir, "gRNA_count_matrix.rds"))
-
