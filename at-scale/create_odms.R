@@ -8,29 +8,34 @@ raw_data_dir <- paste0(gasp_offsite, "raw/")
 intermediate_data_dir <- paste0(gasp_offsite, "intermediate/")
 
 # load ondisc
-# library(ondisc)
-load_all("~/research_code/ondisc")
+library(ondisc)
 
 # gene count matrix
 mtx_fp <- paste0(raw_data_dir, "GSE120861_at_scale_screen.exprs.mtx")
 barcodes_fp <- paste0(raw_data_dir, "GSE120861_at_scale_screen.cells.txt")
 gene_ids_fp <- paste0(raw_data_dir, "GSE120861_at_scale_screen.genes.txt")
-odm_fp <- paste0(processed_data_dir, "gene_expressions")
+
+odm_fp <- paste0(processed_data_dir, "gasp_scale_gene_expressions.odm")
+metadata_fp <- paste0(processed_data_dir, "gasp_scale_gene_metadata.rds")
 
 # create the odm 
 gene_odm <- create_ondisc_matrix_from_mtx(mtx_fp = mtx_fp, barcodes_fp = barcodes_fp, 
-                                          features_fp = gene_ids_fp, odm_fp = odm_fp, 
-                                          progress = TRUE, return_metadata_ondisc_matrix = TRUE)
+                                          features_fp = gene_ids_fp, odm_fp = odm_fp,
+                                          metadata_fp = metadata_fp, progress = TRUE)
+
 # Add p_mito and batch from cell_covariates data frame
 gasp_cell_covariates <- readRDS(paste0(intermediate_data_dir, "cell_covariates.rds"))
-gene_odm@cell_covariates$p_mito <- gasp_cell_covariates$percent.mito
-gene_odm@cell_covariates$batch <- factor(gasp_cell_covariates$prep_batch)
+gene_odm_plus_pmito_batch <- mutate_cell_covariates(gene_odm, p_mito = gasp_cell_covariates$percent.mito,
+                                                    batch = factor(gasp_cell_covariates$prep_batch))
 
-# save the unfiltered metadata odm
-save_odm(odm = gene_odm, name = "unfiltered")
+# save the metadata (overwriting the original metadata file)
+save_odm(odm = gene_odm_plus_pmito_batch,
+         metadata_fp = metadata_fp)
 
-# load the gRNA count matrix
-odm_fp <- paste0(processed_data_dir, "gRNA_counts")
+
+# next, load the gRNA count matrix. Write the backing .odm file and metadata file to disk.
+odm_fp <- paste0(processed_data_dir, "gasp_scale_gRNA_counts.odm")
+metadata_fp <- paste0(processed_data_dir, "gasp_scale_gRNA_metadata.rds")
 gRNA_count_matrix <- readRDS(paste0(intermediate_data_dir, "gRNA_count_matrix.rds"))
 cell_barcodes <- colnames(gRNA_count_matrix)
 feature_barcodes <- data.frame(row.names(gRNA_count_matrix))
@@ -38,5 +43,4 @@ gRNA_odm <- create_ondisc_matrix_from_R_matrix(r_matrix = gRNA_count_matrix,
                                                barcodes = cell_barcodes,
                                                features_df = feature_barcodes,
                                                odm_fp = odm_fp,
-                                               return_metadata_ondisc_matrix = TRUE)
-save_odm(odm = gRNA_odm, name = "unfiltered")
+                                               metadata_fp = metadata_fp)

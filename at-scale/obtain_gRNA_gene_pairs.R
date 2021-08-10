@@ -1,3 +1,4 @@
+require(magrittr)
 # source config file to get gasperini offsite location
 gasp_offsite <- paste0(.get_config_path("LOCAL_GASPERINI_2019_DATA_DIR"), "at-scale/")
 raw_dir <- paste0(gasp_offsite, "raw/")
@@ -15,10 +16,16 @@ pairs_to_analyze %>% dplyr::summarize(paste0(gene_id, "-", gRNA_group)) %>% dply
 gRNA_groups$gRNA_group %>% duplicated() %>% any()
 
 # merge the gRNA_groups with all_results
-pairs_to_analyze_expanded <- dplyr::left_join(x = pairs_to_analyze, y = gRNA_groups, by = "gRNA_group")
-
-# finally, convert to factors
-pairs_to_analyze_expanded <- dplyr::mutate_all(pairs_to_analyze_expanded, factor)
+pairs_to_analyze_expanded <- dplyr::left_join(x = pairs_to_analyze, y = gRNA_groups, by = "gRNA_group") %>%
+  dplyr::rename("gRNA_id" = "barcode") %>% dplyr::mutate_all(factor)
 
 # save pairs to analyze
 saveRDS(object = pairs_to_analyze_expanded, file = paste0(processed_dir, "gRNA_gene_pairs.rds"))
+
+# save sampled pairs as well for testing purposes
+set.seed(4)
+pairs_sample <- pairs_to_analyze_expanded %>% dplyr::filter(gene_id %in% c("ENSG00000077514", "ENSG00000077157",
+                                                                           "ENSG00000076662", "ENSG00000076554") &
+                                                            gRNA_group %in% paste0("random_", seq(1L, 3))) %>%
+  dplyr::slice_sample(n = 15)
+saveRDS(object = pairs_sample, file = paste0(processed_dir, "gRNA_gene_pairs_sample.rds"))
