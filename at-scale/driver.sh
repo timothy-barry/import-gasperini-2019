@@ -1,6 +1,6 @@
 # download raw data
 Rscript download_raw.R
-Rscript  process_data.R
+Rscript process_data.R
 Rscript create_odms.R
 Rscript obtain_gRNA_gene_pairs.R
 

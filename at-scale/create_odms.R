@@ -59,6 +59,7 @@ gRNA_count_matrix <- readRDS(paste0(intermediate_data_dir, "gRNA_count_matrix.rd
 gRNA_groups_df <- readr::read_tsv(file = paste0(raw_data_dir,
                                              "GSE120861_grna_groups.at_scale.txt"),
                                col_types = "cc", col_names = c("gRNA_group", "barcodes"))
+tab <- table(gRNA_groups_df$gRNA_group)
 # confirm that ordering of gRNA groups matches that of barcodes
 identical(row.names(gRNA_count_matrix), gRNA_groups_df$barcodes)
 cell_barcodes <- colnames(gRNA_count_matrix)
@@ -69,13 +70,22 @@ gRNA_odm <- create_ondisc_matrix_from_R_matrix(r_matrix = gRNA_count_matrix,
                                                odm_fp = odm_fp,
                                                metadata_fp = metadata_fp)
 
+# modify the feature covariates: remove coefficient of variation (no need here), but add gRNA_group column
+gRNA_odm <- gRNA_odm %>%
+  mutate_feature_covariates(coef_of_variation = NULL,
+                            gRNA_group = gRNA_groups_df$gRNA_group)
+
+# overwrite metadata file
+save_odm(gRNA_odm, metadata_fp)
+
+
+# THE CODE BELOW IS DEFUNCT. WE KEEP IT HERE FOR LEGACY
+# AND REPRODUCIBILITY PURPOSES. 
 ################################
-# 3. gRNA count matrix (grouped)
+# 3. gRNA count matrix (grouped) 
 ################################
-tab <- table(gRNA_groups_df$gRNA_group)
 single_gRNA_groups <- names(tab)[which(tab == 1)]
 double_gRNA_groups <- names(tab)[which(tab == 2)]
-
 # extract the first and second sets of barcodes for the doubles
 doubles_grouped <- dplyr::filter(gRNA_groups_df, gRNA_group %in% double_gRNA_groups) %>%
   dplyr::group_by(gRNA_group) %>% dplyr::arrange(gRNA_group) 
@@ -89,7 +99,7 @@ for (i in sample(seq(1, length(ordered_groups)), 15, FALSE)) {
   grp <- ordered_groups[i]
   bc_check <- c(doubles_barcode_1[i], doubles_barcode_2[i])
   bc_test <- dplyr::filter(doubles_grouped, gRNA_group == grp) %>% dplyr::pull(barcodes)
-  testthat::expect_true((bc_check %in% bc_test) && (bc_test %in% bc_check))
+  testthat::expect_true(all((bc_check %in% bc_test) & (bc_test %in% bc_check)))
 }
 # sum the count vectors
 double_m1 <- gRNA_count_matrix[doubles_barcode_1,]
