@@ -9,12 +9,14 @@ processed_data_dir <- paste0(gasp_offsite, "processed/")
 processed_data_dir_gene <- paste0(processed_data_dir, "gene/")
 processed_data_dir_grouped <- paste0(processed_data_dir, "gRNA_grouped/")
 processed_data_dir_ungrouped <- paste0(processed_data_dir, "gRNA_ungrouped/")
+processed_data_dir_multimodal <- paste0(processed_data_dir, "multimodal/")
 dirs_to_create <- c(processed_data_dir_gene,
                     processed_data_dir_grouped,
-                    processed_data_dir_ungrouped)
+                    processed_data_dir_ungrouped,
+                    processed_data_dir_multimodal)
 for (dir in dirs_to_create) {
   if (!dir.exists(dir)) dir.create(path = dir, recursive = TRUE)
-} 
+}
 
 # set raw directories
 raw_data_dir <- paste0(gasp_offsite, "raw/")
@@ -35,8 +37,8 @@ gene_ids_fp <- paste0(raw_data_dir, "GSE120861_at_scale_screen.genes.txt")
 odm_fp <- paste0(processed_data_dir_gene, "gasp_scale_gene_expressions.odm")
 metadata_fp <- paste0(processed_data_dir_gene, "gasp_scale_gene_metadata.rds")
 
-# create the odm 
-gene_odm <- create_ondisc_matrix_from_mtx(mtx_fp = mtx_fp, barcodes_fp = barcodes_fp, 
+# create the odm
+gene_odm <- create_ondisc_matrix_from_mtx(mtx_fp = mtx_fp, barcodes_fp = barcodes_fp,
                                           features_fp = gene_ids_fp, odm_fp = odm_fp,
                                           metadata_fp = metadata_fp, progress = TRUE)
 
@@ -79,16 +81,56 @@ gRNA_odm <- gRNA_odm %>%
 save_odm(gRNA_odm, metadata_fp)
 
 
+################
+# Multimodal ODM
+################
+
+# gene modality
+gene_modality <- read_odm(odm_fp = paste0(processed_data_dir_gene, "gasp_scale_gene_expressions.odm"),
+         metadata_fp = paste0(processed_data_dir_gene, "gasp_scale_gene_metadata.rds"))
+# gRNA modality
+gRNA_modality <- read_odm(odm_fp = paste0(processed_data_dir_ungrouped, "gasp_scale_gRNA_counts_ungrouped.odm"),
+         metadata_fp = paste0(processed_data_dir_ungrouped, "gasp_scale_gRNA_metadata_ungrouped.rds"))
+# create the multimodal ODM
+mm_odm <- multimodal_ondisc_matrix(covariate_ondisc_matrix_list = list(gene = gene_modality,
+                                                                       gRNA = gRNA_modality))
+
+# restrict attention to cells with a positive number of gRNA and gene UMIs
+ok_cells <- mm_odm |> ondisc::get_cell_covariates() |>
+  dplyr::summarize(ok_cells = gene_n_umis > 0 & gRNA_n_umis > 0) |>
+  dplyr::pull()
+mm_odm_sub <- mm_odm[,ok_cells]
+
+# transform the covariates
+mm_odm_sub <- mm_odm_sub |>
+  ondisc::mutate_cell_covariates(lg_gene_n_nonzero = log(gene_n_nonzero),
+                                 gene_n_nonzero = NULL,
+                                 lg_gene_n_umis = log(gene_n_umis),
+                                 gene_n_umis = NULL,
+                                 lg_gRNA_n_nonzero = log(gRNA_n_nonzero),
+                                 gRNA_n_nonzero = NULL,
+                                 lg_gRNA_n_umis = log(gRNA_n_umis),
+                                 gRNA_n_umis = NULL)
+
+# save the multimodal ODM
+save_multimodal_odm(multimodal_odm = mm_odm_sub,
+                    multimodal_metadata_fp = paste0(processed_data_dir_multimodal, "multimodal_metadata.rds"))
+
+#mm_odm <- read_multimodal_odm(odm_fps = c(paste0(processed_data_dir_gene, "gasp_scale_gene_expressions.odm"),
+#                                          paste0(processed_data_dir_ungrouped, "gasp_scale_gRNA_counts_ungrouped.odm")),
+#                              multimodal_metadata_fp = paste0(processed_data_dir_multimodal, "multimodal_metadata.rds"))
+
+
 # THE CODE BELOW IS DEFUNCT. WE KEEP IT HERE FOR LEGACY
-# AND REPRODUCIBILITY PURPOSES. 
+# AND REPRODUCIBILITY PURPOSES.
 ################################
-# 3. gRNA count matrix (grouped) 
+# 3. gRNA count matrix (grouped)
 ################################
 single_gRNA_groups <- names(tab)[which(tab == 1)]
 double_gRNA_groups <- names(tab)[which(tab == 2)]
 # extract the first and second sets of barcodes for the doubles
 doubles_grouped <- dplyr::filter(gRNA_groups_df, gRNA_group %in% double_gRNA_groups) %>%
-  dplyr::group_by(gRNA_group) %>% dplyr::arrange(gRNA_group) 
+  dplyr::group_by(gRNA_group) %>% dplyr::arrange(gRNA_group)
 doubles_barcode_1 <- doubles_grouped %>% dplyr::summarize(barcode = barcodes[1]) %>%
   dplyr::pull(barcode)
 doubles_barcode_2 <- doubles_grouped %>% dplyr::summarize(barcode = barcodes[2]) %>%
